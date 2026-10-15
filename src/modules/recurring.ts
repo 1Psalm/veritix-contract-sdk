@@ -11,6 +11,8 @@
  * contributions on this batch.
  */
 import type { RecurringRecord } from '../types';
+import * as actions from './recurring-actions';
+import type { RecurringAmendment, RecurringInvoker } from './recurring-actions';
 
 /** Minimal read capability a `RecurringModule` needs — satisfied by `VeriTixClient`. */
 export interface RecurringReader {
@@ -66,7 +68,41 @@ export interface ExecutionSchedule {
 }
 
 export class RecurringModule {
-  constructor(private readonly reader: RecurringReader) {}
+  constructor(
+    private readonly reader: RecurringReader,
+    private readonly invoker?: RecurringInvoker
+  ) {}
+
+  private requireInvoker(): RecurringInvoker {
+    if (!this.invoker) {
+      throw new Error('RecurringModule was constructed without a write capability');
+    }
+    return this.invoker;
+  }
+
+  cancel(id: bigint): Promise<void> {
+    return actions.cancel(this.requireInvoker(), id);
+  }
+
+  cancelBatch(ids: bigint[]) {
+    return actions.cancelBatch(this.requireInvoker(), ids);
+  }
+
+  pauseRecurring(id: bigint): Promise<void> {
+    return actions.pauseRecurring(this.requireInvoker(), id);
+  }
+
+  resumeRecurring(id: bigint): Promise<void> {
+    return actions.resumeRecurring(this.requireInvoker(), id);
+  }
+
+  amendRecurring(id: bigint, amendment: RecurringAmendment): Promise<void> {
+    return actions.amendRecurring(this.requireInvoker(), id, amendment);
+  }
+
+  transferPayer(id: bigint, newPayer: string): Promise<void> {
+    return actions.transferPayer(this.requireInvoker(), id, newPayer);
+  }
 
   /** Returns the recurring schedule for `id`, or `null` on a contract miss. */
   async getRecurring(id: bigint): Promise<RecurringRecord | null> {
