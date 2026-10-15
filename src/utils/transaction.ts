@@ -203,18 +203,20 @@ export async function submitTransaction(
   tx.sign(keypair);
 
   // 2. Submit with retry
-  let sendResponse: { status: string; hash?: string; errorResult?: { toXDR(encoding?: string): string } } | undefined;
+  type SendResponse = { status: string; hash?: string; errorResult?: { toXDR(encoding?: string): string } };
+  let sendResponse: SendResponse | undefined;
   let lastSubmitError: unknown;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      sendResponse = await server.sendTransaction(tx);
+      const response: SendResponse = await server.sendTransaction(tx);
+      sendResponse = response;
 
-      if (sendResponse.status !== 'ERROR') {
+      if (response.status !== 'ERROR') {
         break;
       }
 
-      const errXdr = sendResponse.errorResult?.toXDR?.('base64') ?? '';
+      const errXdr = response.errorResult?.toXDR?.('base64') ?? '';
       const isRateLimit =
         errXdr.includes('RATE_LIMIT') ||
         errXdr.toLowerCase().includes('too many requests');
