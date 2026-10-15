@@ -434,6 +434,12 @@ export class VeriTixClient {
   }
 }
 
+function toScVal(value: unknown): xdr.ScVal {
+  if (value instanceof xdr.ScVal) return value;
+  if (typeof value === 'string' && /^[GC][A-Z2-7]{55}$/.test(value)) return addressToScVal(value);
+  return nativeToScVal(value);
+}
+
 function escrowChanged(a: EscrowRecord, b: EscrowRecord): boolean {
   return (
     a.released !== b.released ||
