@@ -173,10 +173,30 @@ export interface FeeEstimate {
 // Escrow module — params and results for escrow operations
 // ---------------------------------------------------------------------------
 
-export type {
-  CreateEscrowParams,
-  CreateEscrowResult,
-  TicketEscrowParams,
-  BatchSettlementResult,
-  EscrowStats,
-} from '../modules/escrow';
+/** Parameters for creating a generic escrow. */
+export interface CreateEscrowParams {
+  depositor: string;
+  beneficiary: string;
+  amount: bigint;
+  expiryLedger: number;
+}
+
+/** Result of creating an escrow. */
+export interface CreateEscrowResult {
+  escrowId: bigint;
+  txHash: string;
+}
+
+/** Parameters for creating a ticket-backed escrow. */
+export interface TicketEscrowParams extends CreateEscrowParams {
+  ticketId: bigint;
+}
+
+/** Result of settling a batch of escrows. */
+export interface BatchSettlementResult {
+  settled: number;
+  failed: number;
+  txHashes: string[];
+}
+
+export type { EscrowStats } from '../modules/escrow';

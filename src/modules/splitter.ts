@@ -49,12 +49,14 @@ export function decodeSplitRecord(raw: unknown): SplitRecord {
   const recipientsRaw = r.recipients;
   const totalAmount = r.total_amount ?? r.totalAmount;
   const distributed = r.distributed;
+  const cancelled = r.cancelled ?? false;
 
   if (
     typeof id !== 'bigint' ||
     typeof sender !== 'string' ||
     typeof totalAmount !== 'bigint' ||
-    typeof distributed !== 'boolean'
+    typeof distributed !== 'boolean' ||
+    typeof cancelled !== 'boolean'
   ) {
     throw new Error('split record is missing one or more required fields');
   }
@@ -68,6 +70,7 @@ export function decodeSplitRecord(raw: unknown): SplitRecord {
     recipients: recipientsRaw.map(decodeSplitRecipient),
     totalAmount,
     distributed,
+    cancelled,
   };
 }
 
