@@ -6,6 +6,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   ci:
     name: Build, Lint, Test
@@ -50,3 +53,31 @@ jobs:
             echo "::error::Please update CHANGELOG.md under [Unreleased] when modifying files in src/."
             exit 1
           fi
+
+  sdk-compat:
+    name: stellar-sdk ${{ matrix.sdk }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: ['12.3.0', 'latest']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install @stellar/stellar-sdk@${{ matrix.sdk }}
+        run: npm install --no-save @stellar/stellar-sdk@${{ matrix.sdk }}
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npm run test:unit

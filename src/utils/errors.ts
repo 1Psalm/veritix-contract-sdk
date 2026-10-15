@@ -259,7 +259,6 @@ function buildMessage(code: VeriTixErrorCode, rawStr: string): string {
     [VeriTixErrorCode.InvalidBeneficiary]: 'Beneficiary must not be the same as the depositor.',
     [VeriTixErrorCode.HostError]: 'The Soroban host function evaluation failed.',
     [VeriTixErrorCode.TrappedVmError]: 'The Soroban VM trapped during execution.',
-    [VeriTixErrorCode.Unknown]: `Unrecognised contract error: ${rawStr}`,
     [VeriTixErrorCode.UnknownContractError]: `Unrecognised contract error: ${rawStr}`,
     [VeriTixErrorCode.ConnectionFailed]: 'Failed to connect to the Soroban RPC endpoint.',
     [VeriTixErrorCode.BatchTooLarge]: 'Batch request exceeded maximum allowed size.',
