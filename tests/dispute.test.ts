@@ -416,15 +416,7 @@ describe('DisputeModule.resolveDispute', () => {
       code: VeriTixErrorCode.DisputeAlreadyResolved,
     });
   });
-});
 
-describe('DisputeModule.isDisputeExpired', () => {
-  it('returns true when dispute is expired', async () => {
-    const keypair = Keypair.random();
-    const { client, mockServer } = makeConnectedClient(keypair);
-    mockServer.simulateTransaction.mockResolvedValue({
-      status: 'SUCCESS',
-      result: { retval: xdr.ScVal.scvBool(true) },
   it('throws AdminUnauthorized when caller is not the assigned resolver', async () => {
     const { client } = makeConnectedClient(keypair);
     jest.spyOn(client.dispute, 'getDispute').mockResolvedValue(
@@ -442,6 +434,7 @@ describe('DisputeModule.isDisputeExpired', () => {
     mockServer.simulateTransaction.mockResolvedValue({
       status: 'SUCCESS',
       result: { retval: xdr.ScVal.scvBool(false) },
+    });
     const fakeTx = { id: 'unsigned' } as never;
     const fakeAssembledTx = { id: 'assembled' } as never;
 

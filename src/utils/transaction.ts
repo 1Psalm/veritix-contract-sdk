@@ -12,7 +12,7 @@ import {
   BASE_FEE,
   Contract,
   Keypair,
-  SorobanRpc,
+  rpc,
   Transaction,
   TransactionBuilder,
   xdr,
@@ -51,7 +51,7 @@ const POLL_INTERVAL_MS = 2_000;
  * single contract method.
  */
 export async function buildContractCall(
-  server: SorobanRpc.Server | unknown,
+  server: rpc.Server | unknown,
   sourceAccount: Account,
   contractId: string,
   method: string,
@@ -79,13 +79,13 @@ export async function buildContractCall(
 
 /**
  * Assembles a simulated Soroban transaction back into a signable
- * `TransactionBuilder` (see {@link SorobanRpc.assembleTransaction}).
+ * `TransactionBuilder` (see {@link rpc.assembleTransaction}).
  */
 export function assembleTransaction(
   raw: Transaction,
-  simulation: SorobanRpc.Api.SimulateTransactionResponse,
+  simulation: rpc.Api.SimulateTransactionResponse,
 ): TransactionBuilder {
-  return SorobanRpc.assembleTransaction(raw, simulation);
+  return rpc.assembleTransaction(raw, simulation);
 }
 
 // ---------------------------------------------------------------------------
@@ -97,16 +97,16 @@ export function assembleTransaction(
  * (fee-bumped + footprint-populated) version, ready for signing.
  */
 export async function simulateTransaction(
-  server: SorobanRpc.Server | { simulateTransaction(tx: Transaction): Promise<unknown> },
+  server: rpc.Server | { simulateTransaction(tx: Transaction): Promise<unknown> },
   tx: Transaction,
 ): Promise<PreparedTransaction> {
-  const result = (await server.simulateTransaction(tx)) as SorobanRpc.Api.SimulateTransactionResponse;
+  const result = (await server.simulateTransaction(tx)) as rpc.Api.SimulateTransactionResponse;
 
-  if (SorobanRpc.Api.isSimulationError(result)) {
+  if (rpc.Api.isSimulationError(result)) {
     throw parseSorobanError(result.error);
   }
 
-  const assembled = SorobanRpc.assembleTransaction(tx, result).build();
+  const assembled = rpc.assembleTransaction(tx, result).build();
 
   return {
     transaction: assembled as Transaction,
@@ -124,7 +124,7 @@ const STROOPS_PER_XLM = 10_000_000n;
  * Estimates the transaction fee for a contract call without submitting it.
  */
 export async function estimateFee(
-  server: SorobanRpc.Server,
+  server: rpc.Server,
   contractId: string,
   networkPassphrase: string,
   method: string,
@@ -177,7 +177,7 @@ export interface SubmitTransactionOptions {
  * and polls until confirmed in a ledger.
  */
 export async function submitTransaction(
-  server: SorobanRpc.Server | {
+  server: rpc.Server | {
     sendTransaction(tx: Transaction): Promise<{ status: string; hash?: string; errorResult?: { toXDR(encoding?: string): string } }>;
     getTransaction(hash: string): Promise<{ status: string; ledger?: number; resultXdr?: { toXDR(encoding?: string): string } | null }>;
   },
@@ -203,18 +203,20 @@ export async function submitTransaction(
   tx.sign(keypair);
 
   // 2. Submit with retry
-  let sendResponse: { status: string; hash?: string; errorResult?: { toXDR(encoding?: string): string } } | undefined;
+  type SendResponse = { status: string; hash?: string; errorResult?: { toXDR(encoding?: string): string } };
+  let sendResponse: SendResponse | undefined;
   let lastSubmitError: unknown;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      sendResponse = await server.sendTransaction(tx);
+      const response: SendResponse = await server.sendTransaction(tx);
+      sendResponse = response;
 
-      if (sendResponse.status !== 'ERROR') {
+      if (response.status !== 'ERROR') {
         break;
       }
 
-      const errXdr = sendResponse.errorResult?.toXDR?.('base64') ?? '';
+      const errXdr = response.errorResult?.toXDR?.('base64') ?? '';
       const isRateLimit =
         errXdr.includes('RATE_LIMIT') ||
         errXdr.toLowerCase().includes('too many requests');

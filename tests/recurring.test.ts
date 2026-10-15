@@ -160,6 +160,9 @@ function mockSubmit() {
 // ---------------------------------------------------------------------------
 // #467 — pauseRecurring / resumeRecurring
 // ---------------------------------------------------------------------------
+});
+});
+
 describe('RecurringModule.pauseRecurring', () => {
   beforeEach(() => jest.restoreAllMocks());
 
@@ -186,6 +189,10 @@ describe('RecurringModule.pauseRecurring', () => {
   // ---------------------------------------------------------------------
   // #468 — executeAllDue() categorisation stress testing
   // ---------------------------------------------------------------------
+});
+});
+});
+
   describe('executeAllDue()', () => {
     it('returns all empty arrays when the payer has no recurring payments', async () => {
       const result = await recurring.executeAllDue(FAKE_PAYER);
@@ -214,6 +221,8 @@ describe('RecurringModule.pauseRecurring', () => {
     });
 
   // -- resumeRecurring (#421) -----------------------------------------------
+
+});
 
   describe('resumeRecurring()', () => {
     it('throws ReadOnlyClient when no keypair is set', async () => {
@@ -271,6 +280,8 @@ describe('RecurringModule.pauseRecurring', () => {
     expect(call[4]).toHaveLength(1);
     expect(call[4][0]).toEqual(bigintToScVal(5n, 'u64'));
   });
+});
+
 });
 
 describe('RecurringModule.resumeRecurring', () => {
@@ -484,7 +495,6 @@ describe('RecurringModule.executeAllDue', () => {
       expect(result.executed).toEqual([2n]);
       expect(result.failed).toEqual([3n]);
     });
-  });
 
     it('all payments due → all executed, failed: []', async () => {
       jest.spyOn(recurring as any, 'getRecurringByPayer').mockResolvedValue([10n, 11n]);
@@ -495,6 +505,8 @@ describe('RecurringModule.executeAllDue', () => {
   // ---------------------------------------------------------------------
   // #469 — amendRecurring()
   // ---------------------------------------------------------------------
+});
+
   describe('amendRecurring()', () => {
     it('throws when neither amount nor interval is provided', async () => {
       const keypair = Keypair.random();
@@ -571,6 +583,8 @@ describe('RecurringModule.executeAllDue', () => {
   });
 
   // -- amendRecurring (#263) ------------------------------------------------
+
+});
 
   describe('amendRecurring()', () => {
     it('throws when neither amount nor interval is provided', async () => {
@@ -685,7 +699,6 @@ describe('RecurringModule.executeAllDue', () => {
       expect(buildSpy.mock.calls[0][3]).toBe('transfer_payer');
     });
   });
-});
 
   // ---------------------------------------------------------------------
   // transferPayer()
@@ -717,7 +730,6 @@ describe('RecurringModule.executeAllDue', () => {
       ).rejects.toThrow('recurring payment is inactive');
     });
   });
-});
 
 // ---------------------------------------------------------------------------
 // #470 — paused field correctly parsed from contract records

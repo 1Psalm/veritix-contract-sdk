@@ -184,3 +184,9 @@ This project uses [Changesets](https://github.com/changesets/changesets) for ver
 2. Commit the generated `.changeset/*.md` file alongside your code changes.
 3. When merged to `main`, the Changeset PR bot will open a "Version Packages" PR automatically.
 4. Merging that PR bumps versions and publishes to npm via the release workflow.
+
+---
+
+## Branch Protection
+
+`main` is protected: changes land only through a pull request, and the `ci` check (Build, Lint, Test) must pass before merging. Repository admins configure this under Settings → Branches → Branch protection rules (require a pull request before merging; require status check `ci`).

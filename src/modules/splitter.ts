@@ -12,6 +12,8 @@
  * this batch.
  */
 import type { SplitRecipient, SplitRecord } from '../types';
+import * as actions from './splitter-actions';
+import type { SplitterInvoker, RevenueSharePreviewEntry } from './splitter-actions';
 
 /** Minimal read capability a `SplitterModule` needs — satisfied by `VeriTixClient`. */
 export interface SplitterReader {
@@ -47,12 +49,14 @@ export function decodeSplitRecord(raw: unknown): SplitRecord {
   const recipientsRaw = r.recipients;
   const totalAmount = r.total_amount ?? r.totalAmount;
   const distributed = r.distributed;
+  const cancelled = r.cancelled ?? false;
 
   if (
     typeof id !== 'bigint' ||
     typeof sender !== 'string' ||
     typeof totalAmount !== 'bigint' ||
-    typeof distributed !== 'boolean'
+    typeof distributed !== 'boolean' ||
+    typeof cancelled !== 'boolean'
   ) {
     throw new Error('split record is missing one or more required fields');
   }
@@ -66,11 +70,46 @@ export function decodeSplitRecord(raw: unknown): SplitRecord {
     recipients: recipientsRaw.map(decodeSplitRecipient),
     totalAmount,
     distributed,
+    cancelled,
   };
 }
 
 export class SplitterModule {
-  constructor(private readonly reader: SplitterReader) {}
+  constructor(
+    private readonly reader: SplitterReader,
+    private readonly invoker?: SplitterInvoker
+  ) {}
+
+  private requireInvoker(): SplitterInvoker {
+    if (!this.invoker) {
+      throw new Error('SplitterModule was constructed without a write capability');
+    }
+    return this.invoker;
+  }
+
+  createSplit(sender: string, recipients: SplitRecipient[], totalAmount: bigint): Promise<bigint> {
+    return actions.createSplit(this.requireInvoker(), sender, recipients, totalAmount);
+  }
+
+  createRevenueSplit(
+    sender: string,
+    totalAmount: bigint,
+    shares: Parameters<typeof actions.createRevenueSplit>[3]
+  ): Promise<bigint> {
+    return actions.createRevenueSplit(this.requireInvoker(), sender, totalAmount, shares);
+  }
+
+  getRevenueSharePreview(recipients: SplitRecipient[], totalAmount: bigint): RevenueSharePreviewEntry[] {
+    return actions.getRevenueSharePreview(recipients, totalAmount);
+  }
+
+  distribute(splitId: bigint): Promise<void> {
+    return actions.distribute(this.requireInvoker(), splitId);
+  }
+
+  bulkDistribute(splitIds: bigint[]) {
+    return actions.bulkDistribute(this.requireInvoker(), splitIds);
+  }
 
   /** Returns the split for `id`, or `null` on a contract miss. */
   async getSplit(id: bigint): Promise<SplitRecord | null> {

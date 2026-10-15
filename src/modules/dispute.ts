@@ -11,6 +11,10 @@
  * since `client.ts` is shared across several in-flight contributions).
  */
 import type { DisputeRecord } from '../types';
+import * as actions from './dispute-actions';
+import * as lifecycle from './dispute-lifecycle-actions';
+import type { DisputeInvoker } from './dispute-actions';
+import type { DisputeAppeal } from './dispute-lifecycle-actions';
 
 /** Minimal read capability a `DisputeModule` needs — satisfied by `VeriTixClient`. */
 export interface DisputeReader {
@@ -52,7 +56,45 @@ export function decodeDisputeRecord(raw: unknown): DisputeRecord {
 }
 
 export class DisputeModule {
-  constructor(private readonly reader: DisputeReader) {}
+  constructor(
+    private readonly reader: DisputeReader,
+    private readonly invoker?: DisputeInvoker
+  ) {}
+
+  private requireInvoker(): DisputeInvoker {
+    if (!this.invoker) {
+      throw new Error('DisputeModule was constructed without a write capability');
+    }
+    return this.invoker;
+  }
+
+  openDispute(escrowId: bigint, claimant: string, resolver: string): Promise<bigint> {
+    return actions.openDispute(this.requireInvoker(), escrowId, claimant, resolver);
+  }
+
+  resolveDispute(disputeId: bigint, favorClaimant: boolean, note?: string): Promise<void> {
+    return actions.resolveDispute(this.requireInvoker(), disputeId, favorClaimant, note);
+  }
+
+  expireDispute(disputeId: bigint): Promise<DisputeRecord> {
+    return lifecycle.expireDispute(this.requireInvoker(), disputeId);
+  }
+
+  appealDispute(disputeId: bigint, appeal: DisputeAppeal): Promise<DisputeRecord> {
+    return lifecycle.appealDispute(this.requireInvoker(), disputeId, appeal);
+  }
+
+  getOpenDisputes(): Promise<DisputeRecord[]> {
+    return actions.getOpenDisputes(this.requireInvoker());
+  }
+
+  getDisputesByResolver(resolver: string): Promise<DisputeRecord[]> {
+    return actions.getDisputesByResolver(this.requireInvoker(), resolver);
+  }
+
+  getDisputeHistory(escrowId: bigint): Promise<bigint[]> {
+    return actions.getDisputeHistory(this.requireInvoker(), escrowId);
+  }
 
   /**
    * Returns the dispute for `escrowId`, or `null` if the contract has no
