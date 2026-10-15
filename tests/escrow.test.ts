@@ -88,6 +88,8 @@ describe('EscrowModule', () => {
     expect(escrow).toBeNull();
   });
 
+});
+
 describe('EscrowModule (stubs)', () => {
   const client = new VeriTixClient(getTestnetConfig(FAKE_CONTRACT));
 
@@ -782,6 +784,9 @@ describe('EscrowModule.getEscrowAge', () => {
     const age = await client.escrow.getEscrowAge(1n);
     expect(age).toBe(500);
     expect(mockServer.simulateTransaction).toHaveBeenCalledTimes(1);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // triggerAutoRelease tests
 // ---------------------------------------------------------------------------
@@ -873,6 +878,9 @@ describe('EscrowModule.triggerAutoRelease', () => {
 
     // Should not throw ReadOnlyClient even without keypair
     const result = await client.escrow.triggerAutoRelease(1n, EXPIRY_LEDGER);
+  });
+});
+
     expect(result.successful).toBe(true);
 // escrowBetween tests
 // ---------------------------------------------------------------------------
@@ -1077,7 +1085,6 @@ describe('EscrowModule.settleEvent', () => {
     expect(mockServer.simulateTransaction).toHaveBeenCalledTimes(3);
     expect(mockServer.sendTransaction).toHaveBeenCalledTimes(3);
   });
-});
 
   it('refundEscrow throws EscrowAlreadySettled when escrow is already refunded', async () => {
     const { client } = makeConnectedClient(Keypair.random());
