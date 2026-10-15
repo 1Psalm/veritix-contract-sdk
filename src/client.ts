@@ -14,11 +14,13 @@ import {
   Horizon,
   Keypair,
   TransactionBuilder,
+  nativeToScVal,
   scValToNative,
   xdr,
 } from '@stellar/stellar-sdk';
 import type { Transaction } from '@stellar/stellar-sdk';
 
+import { DisputeModule } from './modules/dispute';
 import { TokenModule } from './modules/token';
 import { EscrowModule } from './modules/escrow';
 import type { EscrowRecord, TransactionResult } from './types';
@@ -26,6 +28,11 @@ import { VeriTixError, VeriTixErrorCode } from './utils/errors';
 import { DUMMY_PUBLIC_KEY, assertValidAddress } from './utils/network';
 import type { NetworkConfig } from './utils/network';
 import { bigintToScVal } from './utils/scval';
+import {
+  buildContractCall as buildTransaction,
+  simulateTransaction as prepareTransaction,
+  submitTransaction,
+} from './utils/transaction';
 
 /** TTL (ms) before the ledger cache is considered stale. */
 const LEDGER_TTL_MS = 5_000;
@@ -88,6 +95,7 @@ export class VeriTixClient {
 
   readonly token: TokenModule;
   readonly escrow: EscrowModule;
+  readonly dispute: DisputeModule;
   private readonly keypair?: Keypair;
   private readonly listeners = new Map<string, Set<ClientListener>>();
 
@@ -96,6 +104,10 @@ export class VeriTixClient {
     this.keypair = keypair;
     this.token = new TokenModule(config, keypair);
     this.escrow = new EscrowModule(config, keypair);
+    this.dispute = new DisputeModule(
+      { simulateRead: (m, a) => this.simulate(m, a) },
+      { simulateRead: (m, a) => this.simulate(m, a), invoke: (m, a) => this.invoke(m, a) },
+    );
   }
 
   /**
@@ -303,6 +315,42 @@ export class VeriTixClient {
       }
       await sleep(intervalMs);
     }
+  }
+
+  /**
+   * Simulates a read-only contract call and returns its decoded value.
+   */
+  async simulate(method: string, args: unknown[] = []): Promise<unknown> {
+    this.requireConnected();
+    return this.simulateRead(method, args.map((a) => nativeToScVal(a)));
+  }
+
+  /**
+   * Builds, simulates, signs and submits a state-changing contract call.
+   *
+   * @throws {VeriTixError} `ReadOnlyClient` without a keypair, `NotConnected`
+   *   before `connect()`.
+   */
+  async invoke(method: string, args: unknown[] = []): Promise<unknown> {
+    if (!this.keypair) {
+      throw new VeriTixError(
+        VeriTixErrorCode.ReadOnlyClient,
+        `A Keypair is required to invoke ${method}. Pass it to VeriTixClient.`,
+      );
+    }
+    this.requireConnected();
+    const source = new StellarAccount(this.keypair.publicKey(), '0');
+    const tx = await buildTransaction(
+      this.server,
+      source,
+      this.config.contractId,
+      method,
+      args.map((a) => nativeToScVal(a)),
+      this.config.networkPassphrase,
+    );
+    const { transaction } = await prepareTransaction(this.server as never, tx);
+    const result = await submitTransaction(this.server as never, transaction, this.keypair);
+    return result.returnValue;
   }
 
   /**
