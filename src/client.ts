@@ -17,6 +17,7 @@ import {
   nativeToScVal,
   scValToNative,
   xdr,
+  rpc,
 } from '@stellar/stellar-sdk';
 import type { Transaction } from '@stellar/stellar-sdk';
 
@@ -359,8 +360,7 @@ export class VeriTixClient {
   async connect(): Promise<void> {
     if (this.connected) return;
 
-    const { Server } = await import('@stellar/stellar-sdk');
-    this.server = new Server(this.config.rpcUrl, {
+    this.server = new rpc.Server(this.config.rpcUrl, {
       allowHttp: this.config.rpcUrl.startsWith('http://'),
     }) as unknown as WatchServer;
 
