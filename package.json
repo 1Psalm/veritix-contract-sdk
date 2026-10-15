@@ -63,7 +63,12 @@
     "@stellar/stellar-sdk": ">=12.3.0"
   },
   "dependencies": {
-    "typescript": "^5.4.5"
+    "@stellar/freighter-api": "^6.0.1"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@changesets/cli": "^2.27.0",
+    "@types/node": "^20",
+    "expect-type": "^0.20.0",
+    "typescript": "^5.4.5"
+  }
 }
