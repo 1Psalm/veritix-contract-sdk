@@ -20,17 +20,14 @@ import {
 } from '@stellar/stellar-sdk';
 import type { Transaction } from '@stellar/stellar-sdk';
 
-import { AdminModule } from './modules/admin';
-import { BatchModule } from './modules/batch';
-import { RecurringModule } from './modules/recurring';
-import { SplitterModule } from './modules/splitter';
+import { DisputeModule } from './modules/dispute';
 import { TokenModule } from './modules/token';
 import { EscrowModule } from './modules/escrow';
 import type { EscrowRecord, TransactionResult } from './types';
 import { VeriTixError, VeriTixErrorCode } from './utils/errors';
 import { DUMMY_PUBLIC_KEY, assertValidAddress } from './utils/network';
 import type { NetworkConfig } from './utils/network';
-import { addressToScVal, bigintToScVal } from './utils/scval';
+import { bigintToScVal } from './utils/scval';
 import {
   buildContractCall as buildTransaction,
   simulateTransaction as prepareTransaction,
@@ -98,10 +95,7 @@ export class VeriTixClient {
 
   readonly token: TokenModule;
   readonly escrow: EscrowModule;
-  readonly splitter: SplitterModule;
-  readonly recurring: RecurringModule;
-  readonly admin: AdminModule;
-  readonly batch: BatchModule;
+  readonly dispute: DisputeModule;
   private readonly keypair?: Keypair;
   private readonly listeners = new Map<string, Set<ClientListener>>();
 
@@ -110,16 +104,10 @@ export class VeriTixClient {
     this.keypair = keypair;
     this.token = new TokenModule(config, keypair);
     this.escrow = new EscrowModule(config, keypair);
-    this.splitter = new SplitterModule(
+    this.dispute = new DisputeModule(
       { simulateRead: (m, a) => this.simulate(m, a) },
       { simulateRead: (m, a) => this.simulate(m, a), invoke: (m, a) => this.invoke(m, a) },
     );
-    this.recurring = new RecurringModule(
-      { simulateRead: (m, a) => this.simulate(m, a) },
-      { invoke: (m, a) => this.invoke(m, a) },
-    );
-    this.admin = new AdminModule(this);
-    this.batch = new BatchModule(this);
   }
 
   /**
@@ -331,11 +319,10 @@ export class VeriTixClient {
 
   /**
    * Simulates a read-only contract call and returns its decoded value.
-   * Plain values are marshalled to `ScVal`s with `nativeToScVal`.
    */
   async simulate(method: string, args: unknown[] = []): Promise<unknown> {
     this.requireConnected();
-    return this.simulateRead(method, args.map(toScVal));
+    return this.simulateRead(method, args.map((a) => nativeToScVal(a)));
   }
 
   /**
@@ -352,17 +339,13 @@ export class VeriTixClient {
       );
     }
     this.requireConnected();
-    const server = this.server as unknown as { getAccount?: (id: string) => Promise<StellarAccount> };
-    const source =
-      typeof server.getAccount === 'function'
-        ? await server.getAccount(this.keypair.publicKey())
-        : new StellarAccount(this.keypair.publicKey(), '0');
+    const source = new StellarAccount(this.keypair.publicKey(), '0');
     const tx = await buildTransaction(
       this.server,
       source,
       this.config.contractId,
       method,
-      args.map(toScVal),
+      args.map((a) => nativeToScVal(a)),
       this.config.networkPassphrase,
     );
     const { transaction } = await prepareTransaction(this.server as never, tx);
